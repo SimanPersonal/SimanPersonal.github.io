@@ -1,1 +1,300 @@
-Text
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman Game</title>
+    <style>
+        #gameContainer {
+            width: 400px;
+            margin: 0 auto;
+        }
+        #score {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        #gameBoard {
+            width: 400px;
+            height: 400px;
+            border: 1px solid black;
+            position: relative;
+            background-color: black;
+        }
+        #pacman {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            transition: transform 0.1s;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: yellow;
+            border-radius: 50%;
+            position: absolute;
+        }
+        .ghost {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            border-radius: 15px 15px 0 0;
+        }
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="score">Score: 0</div>
+        <div id="gameBoard">
+            <div id="pacman"></div>
+        </div>
+    </div>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const pacman = document.getElementById('pacman');
+        const scoreElement = document.getElementById('score');
+        let posX = 0;
+        let posY = 0;
+        const pacmanStep = 5;
+        const ghostStep = 7;
+        let mouthOpen = true;
+        let direction = 0; // 0: right, 1: down, 2: left, 3: up
+        let score = 0;
+        let dots = [];
+        let ghosts = [];
+        let ghostColors = ['red', 'pink', 'cyan'];
+        let level = 1;
+
+        function drawPacman() {
+            const angle = mouthOpen ? 60 : 10;
+            const startAngle = (direction * 90 + angle / 2) * Math.PI / 180;
+            const endAngle = (direction * 90 + 360 - angle / 2) * Math.PI / 180;
+            const centerX = 15;
+            const centerY = 15;
+            const radius = 15;
+
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.canvas.width = 30;
+            ctx.canvas.height = 30;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = 'yellow';
+            ctx.fill();
+
+            pacman.style.backgroundImage = `url(${ctx.canvas.toDataURL()})`;
+        }
+
+        function createDot() {
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            dot.style.left = Math.floor(Math.random() * 394) + 'px';
+            dot.style.top = Math.floor(Math.random() * 394) + 'px';
+            gameBoard.appendChild(dot);
+            dots.push(dot);
+        }
+
+        function createGhost(color) {
+            const ghost = document.createElement('div');
+            ghost.className = 'ghost';
+            ghost.style.backgroundColor = color;
+            ghost.style.left = Math.floor(Math.random() * 370) + 'px';
+            ghost.style.top = Math.floor(Math.random() * 370) + 'px';
+            gameBoard.appendChild(ghost);
+            ghosts.push(ghost);
+        }
+
+        function moveGhosts() {
+            ghosts.forEach(ghost => {
+                const ghostX = parseInt(ghost.style.left);
+                const ghostY = parseInt(ghost.style.top);
+                const dx = posX - ghostX;
+                const dy = posY - ghostY;
+                
+                const random = Math.random();
+                if (random < 0.8) {
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        ghost.style.left = (ghostX + Math.sign(dx) * ghostStep) + 'px';
+                    } else {
+                        ghost.style.top = (ghostY + Math.sign(dy) * ghostStep) + 'px';
+                    }
+                } else {
+                    const randomDirection = Math.floor(random * 4);
+                    switch(randomDirection) {
+                        case 0:
+                            if (ghostX < 370) ghost.style.left = (ghostX + ghostStep) + 'px';
+                            break;
+                        case 1:
+                            if (ghostY < 370) ghost.style.top = (ghostY + ghostStep) + 'px';
+                            break;
+                        case 2:
+                            if (ghostX > 0) ghost.style.left = (ghostX - ghostStep) + 'px';
+                            break;
+                        case 3:
+                            if (ghostY > 0) ghost.style.top = (ghostY - ghostStep) + 'px';
+                            break;
+                    }
+                }
+            });
+        }
+
+        function checkCollision() {
+            const pacmanRect = pacman.getBoundingClientRect();
+            
+            dots.forEach((dot, index) => {
+                const dotRect = dot.getBoundingClientRect();
+                if (
+                    pacmanRect.left < dotRect.right &&
+                    pacmanRect.right > dotRect.left &&
+                    pacmanRect.top < dotRect.bottom &&
+                    pacmanRect.bottom > dotRect.top
+                ) {
+                    dot.remove();
+                    dots.splice(index, 1);
+                    score++;
+                    scoreElement.textContent = `Score: ${score}`;
+                    
+                    if (dots.length === 0) {
+                        celebrateWin();
+                    }
+                }
+            });
+
+            ghosts.forEach(ghost => {
+                const ghostRect = ghost.getBoundingClientRect();
+                if (
+                    pacmanRect.left < ghostRect.right &&
+                    pacmanRect.right > ghostRect.left &&
+                    pacmanRect.top < ghostRect.bottom &&
+                    pacmanRect.bottom > ghostRect.top
+                ) {
+                    resetGame();
+                }
+            });
+        }
+
+        function movePacman(e) {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (posY > 0) posY -= pacmanStep;
+                    direction = 3;
+                    break;
+                case 'ArrowDown':
+                    if (posY < 370) posY += pacmanStep;
+                    direction = 1;
+                    break;
+                case 'ArrowLeft':
+                    if (posX > 0) posX -= pacmanStep;
+                    direction = 2;
+                    break;
+                case 'ArrowRight':
+                    if (posX < 370) posX += pacmanStep;
+                    direction = 0;
+                    break;
+                default:
+                    return;
+            }
+            pacman.style.top = posY + 'px';
+            pacman.style.left = posX + 'px';
+            mouthOpen = !mouthOpen;
+            drawPacman();
+            checkCollision();
+        }
+
+        function resetGame() {
+            score = 0;
+            scoreElement.textContent = `Score: ${score}`;
+
+            posX = 0;
+            posY = 0;
+            pacman.style.left = posX + 'px';
+            pacman.style.top = posY + 'px';
+            direction = 0;
+            drawPacman();
+
+            dots.forEach(dot => dot.remove());
+            ghosts.forEach(ghost => ghost.remove());
+            dots = [];
+            ghosts = [];
+
+            for (let i = 0; i < 250; i++) {
+                createDot();
+            }
+            ghostColors.forEach(color => createGhost(color));
+        }
+
+        function celebrateWin() {
+            document.removeEventListener('keydown', movePacman);
+
+            for (let i = 0; i < 50; i++) {
+                createFirework();
+            }
+
+            const winMessage = document.createElement('div');
+            winMessage.textContent = 'You Win! Game Resetting Soon...';
+            winMessage.style.position = 'absolute';
+            winMessage.style.top = '50%';
+            winMessage.style.left = '50%';
+            winMessage.style.transform = 'translate(-50%, -50%)';
+            winMessage.style.color = 'white';
+            winMessage.style.fontSize = '24px';
+            gameBoard.appendChild(winMessage);
+
+            setTimeout(() => {
+                gameBoard.removeChild(winMessage);
+                resetGame();
+                document.addEventListener('keydown', movePacman);
+            }, 5000);
+        }
+
+        function createFirework() {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = Math.random() * 400 + 'px';
+            firework.style.top = Math.random() * 400 + 'px';
+            firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            gameBoard.appendChild(firework);
+
+            let opacity = 1;
+            const animate = () => {
+                opacity -= 0.02;
+                firework.style.opacity = opacity;
+                if (opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    gameBoard.removeChild(firework);
+                }
+            };
+            animate();
+        }
+
+        function initGame() {
+            document.addEventListener('keydown', movePacman);
+            drawPacman();
+
+            for (let i = 0; i < 250; i++) {
+                createDot();
+            }
+            ghostColors.forEach(color => createGhost(color));
+
+            setInterval(() => {
+                mouthOpen = !mouthOpen;
+                drawPacman();
+                moveGhosts();
+                checkCollision();
+            }, 100);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
