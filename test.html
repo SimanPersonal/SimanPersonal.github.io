@@ -5,9 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pacman Game</title>
     <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
         #gameContainer {
-            width: 400px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 400px;
         }
         #score {
             text-align: center;
@@ -15,35 +24,37 @@
             margin-bottom: 10px;
         }
         #gameBoard {
-            width: 400px;
-            height: 400px;
+            width: 100%;
+            height: 0;
+            padding-bottom: 100%;
             border: 1px solid black;
             position: relative;
             background-color: black;
+            overflow: hidden;
         }
         #pacman {
-            width: 30px;
-            height: 30px;
+            width: 7.5%;
+            height: 7.5%;
             position: absolute;
             transition: transform 0.1s;
         }
         .dot {
-            width: 6px;
-            height: 6px;
+            width: 1.5%;
+            height: 1.5%;
             background-color: yellow;
             border-radius: 50%;
             position: absolute;
         }
         .ghost {
-            width: 30px;
-            height: 30px;
+            width: 7.5%;
+            height: 7.5%;
             position: absolute;
-            border-radius: 15px 15px 0 0;
+            border-radius: 3.75% 3.75% 0 0;
         }
         .firework {
             position: absolute;
-            width: 5px;
-            height: 5px;
+            width: 1.25%;
+            height: 1.25%;
             border-radius: 50%;
         }
     </style>
@@ -62,8 +73,8 @@
         const scoreElement = document.getElementById('score');
         let posX = 0;
         let posY = 0;
-        const pacmanStep = 5;
-        const ghostStep = 7;
+        const pacmanStep = 1.25;
+        const ghostStep = 1.75;
         let mouthOpen = true;
         let direction = 0; // 0: right, 1: down, 2: left, 3: up
         let score = 0;
@@ -71,6 +82,8 @@
         let ghosts = [];
         let ghostColors = ['red', 'pink', 'cyan'];
         let level = 1;
+        let touchStartX = 0;
+        let touchStartY = 0;
 
         function drawPacman() {
             const angle = mouthOpen ? 60 : 10;
@@ -97,8 +110,8 @@
         function createDot() {
             const dot = document.createElement('div');
             dot.className = 'dot';
-            dot.style.left = Math.floor(Math.random() * 394) + 'px';
-            dot.style.top = Math.floor(Math.random() * 394) + 'px';
+            dot.style.left = Math.floor(Math.random() * 98.5) + '%';
+            dot.style.top = Math.floor(Math.random() * 98.5) + '%';
             gameBoard.appendChild(dot);
             dots.push(dot);
         }
@@ -107,40 +120,40 @@
             const ghost = document.createElement('div');
             ghost.className = 'ghost';
             ghost.style.backgroundColor = color;
-            ghost.style.left = Math.floor(Math.random() * 370) + 'px';
-            ghost.style.top = Math.floor(Math.random() * 370) + 'px';
+            ghost.style.left = Math.floor(Math.random() * 92.5) + '%';
+            ghost.style.top = Math.floor(Math.random() * 92.5) + '%';
             gameBoard.appendChild(ghost);
             ghosts.push(ghost);
         }
 
         function moveGhosts() {
             ghosts.forEach(ghost => {
-                const ghostX = parseInt(ghost.style.left);
-                const ghostY = parseInt(ghost.style.top);
+                const ghostX = parseFloat(ghost.style.left);
+                const ghostY = parseFloat(ghost.style.top);
                 const dx = posX - ghostX;
                 const dy = posY - ghostY;
                 
                 const random = Math.random();
                 if (random < 0.8) {
                     if (Math.abs(dx) > Math.abs(dy)) {
-                        ghost.style.left = (ghostX + Math.sign(dx) * ghostStep) + 'px';
+                        ghost.style.left = (ghostX + Math.sign(dx) * ghostStep) + '%';
                     } else {
-                        ghost.style.top = (ghostY + Math.sign(dy) * ghostStep) + 'px';
+                        ghost.style.top = (ghostY + Math.sign(dy) * ghostStep) + '%';
                     }
                 } else {
                     const randomDirection = Math.floor(random * 4);
                     switch(randomDirection) {
                         case 0:
-                            if (ghostX < 370) ghost.style.left = (ghostX + ghostStep) + 'px';
+                            if (ghostX < 92.5) ghost.style.left = (ghostX + ghostStep) + '%';
                             break;
                         case 1:
-                            if (ghostY < 370) ghost.style.top = (ghostY + ghostStep) + 'px';
+                            if (ghostY < 92.5) ghost.style.top = (ghostY + ghostStep) + '%';
                             break;
                         case 2:
-                            if (ghostX > 0) ghost.style.left = (ghostX - ghostStep) + 'px';
+                            if (ghostX > 0) ghost.style.left = (ghostX - ghostStep) + '%';
                             break;
                         case 3:
-                            if (ghostY > 0) ghost.style.top = (ghostY - ghostStep) + 'px';
+                            if (ghostY > 0) ghost.style.top = (ghostY - ghostStep) + '%';
                             break;
                     }
                 }
@@ -182,32 +195,72 @@
             });
         }
 
-        function movePacman(e) {
-            switch(e.key) {
-                case 'ArrowUp':
+        function movePacman(newDirection) {
+            direction = newDirection;
+            switch(direction) {
+                case 3: // Up
                     if (posY > 0) posY -= pacmanStep;
-                    direction = 3;
                     break;
-                case 'ArrowDown':
-                    if (posY < 370) posY += pacmanStep;
-                    direction = 1;
+                case 1: // Down
+                    if (posY < 92.5) posY += pacmanStep;
                     break;
-                case 'ArrowLeft':
+                case 2: // Left
                     if (posX > 0) posX -= pacmanStep;
-                    direction = 2;
                     break;
-                case 'ArrowRight':
-                    if (posX < 370) posX += pacmanStep;
-                    direction = 0;
+                case 0: // Right
+                    if (posX < 92.5) posX += pacmanStep;
                     break;
-                default:
-                    return;
             }
-            pacman.style.top = posY + 'px';
-            pacman.style.left = posX + 'px';
+            pacman.style.top = posY + '%';
+            pacman.style.left = posX + '%';
             mouthOpen = !mouthOpen;
             drawPacman();
             checkCollision();
+        }
+
+        function handleKeydown(e) {
+            switch(e.key) {
+                case 'ArrowUp':
+                    movePacman(3);
+                    break;
+                case 'ArrowDown':
+                    movePacman(1);
+                    break;
+                case 'ArrowLeft':
+                    movePacman(2);
+                    break;
+                case 'ArrowRight':
+                    movePacman(0);
+                    break;
+            }
+        }
+
+        function handleTouchStart(e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+
+        function handleTouchMove(e) {
+            if (!touchStartX || !touchStartY) {
+                return;
+            }
+
+            const touchEndX = e.touches[0].clientX;
+            const touchEndY = e.touches[0].clientY;
+
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                movePacman(dx > 0 ? 0 : 2);
+            } else {
+                movePacman(dy > 0 ? 1 : 3);
+            }
+
+            touchStartX = touchEndX;
+            touchStartY = touchEndY;
+
+            e.preventDefault();
         }
 
         function resetGame() {
@@ -216,8 +269,8 @@
 
             posX = 0;
             posY = 0;
-            pacman.style.left = posX + 'px';
-            pacman.style.top = posY + 'px';
+            pacman.style.left = posX + '%';
+            pacman.style.top = posY + '%';
             direction = 0;
             drawPacman();
 
@@ -233,7 +286,9 @@
         }
 
         function celebrateWin() {
-            document.removeEventListener('keydown', movePacman);
+            document.removeEventListener('keydown', handleKeydown);
+            gameBoard.removeEventListener('touchstart', handleTouchStart);
+            gameBoard.removeEventListener('touchmove', handleTouchMove);
 
             for (let i = 0; i < 50; i++) {
                 createFirework();
@@ -252,15 +307,17 @@
             setTimeout(() => {
                 gameBoard.removeChild(winMessage);
                 resetGame();
-                document.addEventListener('keydown', movePacman);
+                document.addEventListener('keydown', handleKeydown);
+                gameBoard.addEventListener('touchstart', handleTouchStart);
+                gameBoard.addEventListener('touchmove', handleTouchMove);
             }, 5000);
         }
 
         function createFirework() {
             const firework = document.createElement('div');
             firework.className = 'firework';
-            firework.style.left = Math.random() * 400 + 'px';
-            firework.style.top = Math.random() * 400 + 'px';
+            firework.style.left = Math.random() * 100 + '%';
+            firework.style.top = Math.random() * 100 + '%';
             firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
             gameBoard.appendChild(firework);
 
@@ -278,7 +335,9 @@
         }
 
         function initGame() {
-            document.addEventListener('keydown', movePacman);
+            document.addEventListener('keydown', handleKeydown);
+            gameBoard.addEventListener('touchstart', handleTouchStart);
+            gameBoard.addEventListener('touchmove', handleTouchMove);
             drawPacman();
 
             for (let i = 0; i < 250; i++) {
